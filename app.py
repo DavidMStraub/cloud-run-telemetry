@@ -23,16 +23,20 @@ from utils.logging import logger
 
 app = Flask(__name__)
 
-
-@app.route("/")
-def hello() -> str:
-    # Use basic logging with custom fields
-    logger.info(logField="custom-entry", arbitraryField="custom-entry")
-
-    # https://cloud.google.com/run/docs/logging#correlate-logs
-    logger.info("Child logger with trace Id.")
-
-    return "Hello, World!"
+@app.route("/", methods=["POST"])
+def receive_telemetry():
+    try:
+        data = request.get_json(force=True)
+        logger.info(
+		    "Telemetry received",
+		    server_uuid=data.get("server_uuid"),
+			tree_uuid=data.get("tree_uuid"),
+			timestamp=data.get("timestamp"),
+		)
+        return "Telemetry received", 200
+    except Exception as e:
+        logger.error(f"Failed to process telemetry: {e}")
+        return "Invalid payload", 400
 
 
 def shutdown_handler(signal_int: int, frame: FrameType) -> None:
